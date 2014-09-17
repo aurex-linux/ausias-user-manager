@@ -1,0 +1,31 @@
+#!/bin/sh
+die() {
+	echo "$1" >&2
+	exit 1
+}
+
+echo "WARNING!!!: This script deletes from ldap server all users tagged as 'deleted' ('borrado = 1') in mySQL itaca.alumnos table"
+echo "¿Do you want to proceed? (Write 'YES' in uppercase to continue)"
+read a
+[ "$a" = "YES" ] || die "Aborted due to user input"
+
+
+[ $(id -u) -eq 0 ] || die "You must be root to run this script"
+ 
+TMP_FILE="$(tempfile)"
+
+echo "Enter mySQL root password:"
+mysql -u root -p -N -B -e "use itaca; select login from alumnos where borrado='1';" > "$TMP_FILE"
+
+[ -s "$TMP_FILE" ] || die "Error generating file from mysql"
+
+cat "$TMP_FILE" |while read l; do
+	echo "Deleting user: $l"
+	smbldap-userdel $l || true
+done
+
+echo "Enter mySQL root password:"
+mysql -u root -p -N -B -e "use itaca; update alumnos set borrado='2' where borrado='1';"
+
+rm -f "$TMP_FILE"
+

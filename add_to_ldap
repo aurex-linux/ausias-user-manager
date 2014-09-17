@@ -1,0 +1,55 @@
+#!/bin/sh
+die() {
+	echo "$1" >&2
+	exit 1
+}
+
+echo "WARNING!!!: This script adds to ldap server all users tagged as 'new' ('alta = 1') in mySQL itaca.alumnos table"
+echo "¿Do you want to proceed? (Write 'YES' in uppercase to continue)"
+read a
+[ "$a" = "YES" ] || die "Aborted due to user input"
+
+
+[ $(id -u) -eq 0 ] || die "You must be root to run this script"
+ 
+TMP_FILE="$(tempfile)"
+
+echo "Enter mySQL root password:"
+mysql -u root -p -N -B -e "use itaca; select nombre, apellido1, apellido2, gacadcod, NIA, DNI_NORM from alumnos where alta='1';" > "$TMP_FILE"
+
+[ -s "$TMP_FILE" ] || die "Error generating file from mysql"
+
+cat "$TMP_FILE" |while read l; do
+	L0="$(echo "$l"|tr "\t" ",")"
+	nombre="${L0%%,*}"
+	L="${L0#*,}"
+	ape1="${L%%,*}"
+        L="${L#*,}"
+	ape2="${L%%,*}"
+        L="${L#*,}"
+	grupo="${L%%,*}"
+        L="${L#*,}"
+	nia="${L%%,*}"
+        L="${L#*,}"
+	dni="${L%%,*}"
+	if [ -z "$dni" ] || [ "$dni" = "NUL" ]; then
+		log_empty_dni "$L0"
+		echo "Error, invalid DNI: $L0"
+	else
+		login="a${dni}"
+		if [ -z "$nia" ] || [ "$nia" = "NUL" ]; then
+			employee="${nia}000"
+		else
+			employee="${dni}000"
+		fi
+		gecos="$ape1 $ape2, $nombre"
+		echo "Adding user: $gecos"
+		smbldap-useradd $l || true
+	fi
+done
+
+echo "Enter mySQL root password:"
+mysql -u root -p -N -B -e "use itaca; update alumnos set borrado='2' where borrado='1';"
+
+rm -f "$TMP_FILE"
+

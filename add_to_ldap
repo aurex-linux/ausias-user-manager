@@ -4,6 +4,10 @@ die() {
 	exit 1
 }
 
+strip_dni(){
+	echo "$1" |sed "s%[a-zA-Z]%%g"
+}
+
 echo "WARNING!!!: This script adds to ldap server all users tagged as 'new' ('alta = 1') in mySQL itaca.alumnos table"
 echo "¿Do you want to proceed? (Write 'YES' in uppercase to continue)"
 read a
@@ -33,18 +37,22 @@ cat "$TMP_FILE" |while read l; do
         L="${L#*,}"
 	dni="${L%%,*}"
 	if [ -z "$dni" ] || [ "$dni" = "NUL" ]; then
-		log_empty_dni "$L0"
 		echo "Error, invalid DNI: $L0"
 	else
 		login="a${dni}"
 		if [ -z "$nia" ] || [ "$nia" = "NUL" ]; then
-			employee="${nia}000"
+			initpass="${nia}"
+			employee="${initpass}000"
 		else
-			employee="${dni}000"
+			initpass="$(strip_dni "${dni}")"
+			employee="9${initpass}000"
 		fi
-		gecos="$ape1 $ape2, $nombre"
+		gecos="$ape1 $ape2  $nombre"
 		echo "Adding user: $gecos"
-		smbldap-useradd $l || true
+#		smbldap-useradd -a -g ALUMNOS -d "/datos/usuarios/alumnos/$login" -D "S:" -G "Domain Users" -o "ou=usuarios,dc=centro,dc=com" -c "$gecos"  || true
+# echo "ag_prueba" |smbldap-useradd -a -g ALUMNOS -d "/datos/usuarios/alumnos/ag_prueba" -D "S:" -G "Domain Users" -c "Alumno Generico  Prueba" -P  -p ag_prueba
+# create homedir: se puede usar -m (requiere haber montado desde satanas)
+
 	fi
 done
 

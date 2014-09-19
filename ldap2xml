@@ -1,0 +1,25 @@
+#!/bin/sh
+
+SED_RULE="/^dn:/s%^.*$%<alumno%;/^$/s%^%/>\n%;"
+
+ATTRIB_LIST="uid uidNumber gecos employeeNumber sambaSID gidNumber sambaPrimaryGroupSID"
+for f in $ATTRIB_LIST ; do
+	case "$f" in
+		uid)
+			F="login"
+			;;
+		gecos)
+			F="nombre_comp"
+			;;
+		*)
+			F="$f"
+			;;
+	esac
+	SED_RULE="${SED_RULE}/^$f:/{s%^$f: % $F=\"%;s%\$%\"%};"
+
+done
+
+# get ldif
+#TMP_FILE="$(tempfile)"
+ldapsearch -x -W -D 'cn=admin,dc=centro,dc=com' -h localhost -b 'dc=centro,dc=com' -LLL '(&(gidNumber=502)(objectClass=posixAccount))' $ATTRIB_LIST | sed -e "$SED_RULE"
+

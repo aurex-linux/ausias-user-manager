@@ -1,6 +1,8 @@
 #!/bin/sh
 die() {
 	echo "$1" >&2
+	[ -z "$TMP_FILE" ] || rm -f "$TMP_FILE"
+	[ -z "$TMP_FILE2" ] || rm -f "$TMP_FILE2"
 	exit 1
 }
 
@@ -17,6 +19,7 @@ read a
 [ $(id -u) -eq 0 ] || die "You must be root to run this script"
  
 TMP_FILE="$(tempfile)"
+TMP_FILE2="$(tempfile)"
 
 echo "Enter mySQL root password:"
 mysql -u root -p -N -B -e "use itaca; select nombre, apellido1, apellido2, gacadcod, NIA, DNI_NORM from alumnos where alta='1';" > "$TMP_FILE"
@@ -50,12 +53,17 @@ cat "$TMP_FILE" |while read l; do
 		gecos="$ape1 $ape2  $nombre"
 		echo "Adding user: $gecos"
 #		smbldap-useradd -a -g ALUMNOS -d "/datos/usuarios/alumnos/$login" -D "S:" -G "Domain Users" -o "ou=usuarios,dc=centro,dc=com" -c "$gecos"  || true
-# echo "ag_prueba" |smbldap-useradd -a -g ALUMNOS -d "/datos/usuarios/alumnos/ag_prueba" -D "S:" -G "Domain Users" -c "Alumno Generico  Prueba" -P  -p ag_prueba
-# create homedir: se puede usar -m (requiere haber montado desde satanas)
+		rc=0
+		echo "$initpass" |smbldap-useradd -a -g ALUMNOS -d "/datos/usuarios/alumnos/${login}" -D "S:" -G "Domain Users" -c "$gecos" -Z employeeNumber=$employee -P  -p "${login}" || rc=$?
+		if [ $rc -eq 0 ] ; then
+			echo ${login} >> "$TMP_FILE2"
+		fi
+#FUTURO: create homedir: se puede usar -m (requiere haber montado desde satanas)
 
 	fi
 done
-
+# generar fichero con id 
+ldapsearch -x -b "dc=centro,dc=com" -D "ui=joindomain,ou=usuarios,dc=centro,dc=com" -W -f "$TMP_FILE2" '(uid=%s)' uid sambaSID gidNumber 
 echo "Enter mySQL root password:"
 mysql -u root -p -N -B -e "use itaca; update alumnos set borrado='2' where borrado='1';"
 

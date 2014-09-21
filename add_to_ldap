@@ -20,6 +20,7 @@ read a
  
 TMP_FILE="$(tempfile)"
 TMP_FILE2="$(tempfile)"
+TMP_FILE3="$(tempfile)"
 
 echo "Enter mySQL root password:"
 mysql -u root -p -N -B -e "use itaca; select nombre, apellido1, apellido2, gacadcod, NIA, DNI_NORM from alumnos where alta='1';" > "$TMP_FILE"
@@ -63,7 +64,27 @@ cat "$TMP_FILE" |while read l; do
 	fi
 done
 # generar fichero con id 
-ldapsearch -x -b "dc=centro,dc=com" -D "ui=joindomain,ou=usuarios,dc=centro,dc=com" -W -f "$TMP_FILE2" '(uid=%s)' uid sambaSID gidNumber 
+
+SED_RULE="/^$/d;/^dn:/s%^.*$%\n<alumno%;"
+
+ATTRIB_LIST="uid uidNumber employeeNumber sambaSID gidNumber sambaPrimaryGroupSID"
+for f in $ATTRIB_LIST ; do
+	case "$f" in
+		uid)
+			F="login"
+			;;
+		*)
+			F="$f"
+			;;
+	esac
+	SED_RULE="${SED_RULE}/^$f:/{s%^$f: % $F=\"%;s%\$%\"%};"
+
+done
+
+ldapsearch -LLL -x -b "dc=centro,dc=com" -D "uid=joindomain,ou=usuarios,dc=centro,dc=com" -W -f "$TMP_FILE2" '(&(objectClass=posixAccount)(uid=%s))' $ATTRIB_LIST | sed -e "$SED_RULE" |sed '1d;/^$/s%^%\\\>%;$a\\\>' > "$TMP_FILE3"
+
+# import to mysql ...
+
 echo "Enter mySQL root password:"
 mysql -u root -p -N -B -e "use itaca; update alumnos set borrado='2' where borrado='1';"
 

@@ -22,6 +22,11 @@ TMP_FILE="$(tempfile)"
 TMP_FILE2="$(tempfile)"
 TMP_FILE3="$(tempfile)"
 
+# 2. añadir alumnos nuevos de itaca
+# INSERT INTO alumnos ( nombre, apellido1, apellido2, gacadcod, nac_fecha, sexo, NIA, DNI_NORM, alta )
+# SELECT Nombre as nombre, Apellido1 as apellido1, Apellido2 as apellido2, Grupo as gacadcod, `Fecha Nacimiento` as nac_fecha,Sexo as sexo,NIA as NIA,dniok as DNI_NORM, '1' as alta FROM `itaca_current` where dniok not in (select DNI_NORM from alumnos)
+
+
 echo "Enter mySQL root password:"
 mysql -u root -p -N -B -e "use itaca; select nombre, apellido1, apellido2, gacadcod, NIA, DNI_NORM from alumnos where alta='1';" > "$TMP_FILE"
 
@@ -51,7 +56,7 @@ cat "$TMP_FILE" |while read l; do
 			initpass="$(strip_dni "${dni}")"
 			employee="9${initpass}000"
 		fi
-		gecos="$ape1 $ape2  $nombre"
+		gecos="$(echo "$ape1 $ape2  $nombre" sed -e "s%ñ%ny%g;s%Ñ%NY%g" |iconv --to-code ASCII//TRANSLIT)"
 		echo "Adding user: $gecos"
 #		smbldap-useradd -a -g ALUMNOS -d "/datos/usuarios/alumnos/$login" -D "S:" -G "Domain Users" -o "ou=usuarios,dc=centro,dc=com" -c "$gecos"  || true
 		rc=0
@@ -63,6 +68,7 @@ cat "$TMP_FILE" |while read l; do
 
 	fi
 done
+
 # generar fichero con id 
 
 SED_RULE="/^$/d;/^dn:/s%^.*$%\n<alumno%;"

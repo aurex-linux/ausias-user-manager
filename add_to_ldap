@@ -7,7 +7,8 @@ die() {
 }
 
 strip_dni(){
-	echo "$1" |sed "s%[a-zA-Z]%%g"
+	# remove letters and select the last 8 chars
+	echo "$1" |sed "s%[a-zA-Z]%%g;s%^.*\(.\{8\}\)$%\1%"
 }
 
 echo "WARNING!!!: This script adds to ldap server all users tagged as 'new' ('alta = 1') in mySQL itaca.alumnos table"
@@ -48,7 +49,7 @@ cat "$TMP_FILE" |while read l; do
 	if [ -z "$dni" ] || [ "$dni" = "NUL" ]; then
 		echo "Error, invalid DNI: $L0"
 	else
-		login="a${dni}"
+		login="$(echo "a${dni}" |tr "[:upper:]" "[:lower:]")"
 		if [ -z "$nia" ] || [ "$nia" = "NUL" ]; then
 			initpass="${nia}"
 			employee="6${initpass}000"

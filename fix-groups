@@ -19,90 +19,34 @@ TMP_FILE2="$(tempfile)"
 TMP_FILE3="$(tempfile)"
 
 # get list of 'old fashioned' groups
-ldapsearch -LLL -b ou=grupos,dc=centro,dc=com -D uid=joindomain,ou=usuarios,dc=centro,dc=com -W "(&(cn=GrpAc_*)(ObjectClass=posixGroup))" dn |sed "s%dn:[[:blank:]]*%%;/^$/d" > $TMP_FILE
+echo "password de cn=admin,dc=centro,dc=com"
+ldapsearch -LLL -b ou=grupos,dc=centro,dc=com -D cn=admin,dc=centro,dc=com -W "(&(cn=GrpAc_*)(ObjectClass=posixGroup))" dn |sed "s%dn:[[:blank:]]*%%;/^$/d" > $TMP_FILE
 
 # delete every group:
+echo "password de cn=admin,dc=centro,dc=com"
 ldapdelete -D cn=admin,dc=centro,dc=com -W -f $TMP_FILE
 
 # get list of login/groups
+echo "password de mysql"
 mysql -u root -p -N -B -e "use itaca; SELECT login, gacadcod FROM alumnos WHERE borrado='0'" > $TMP_FILE2 
 
 # get list of groups
-sed -e "s%^.*[[:blank:]]\+%%" $TMP_FILE2 |sort -u > $TMP_FILE > $TMP_FILE33
- 
+sed -e "s%^.*[[:blank:]]\+%%" $TMP_FILE2 |sort -u > $TMP_FILE3
 
-echo "Enter mySQL root password:"
-mysql -u root -p -N -B -e "use itaca; select nombre, apellido1, apellido2, gacadcod, NIA, DNI_NORM from alumnos where alta='1';" > "$TMP_FILE"
-
-[ -s "$TMP_FILE" ] || die "Error generating file from mysql"
-
-cat "$TMP_FILE" |while read l; do
-	L0="$(echo "$l"|tr "\t" ",")"
-	nombre="${L0%%,*}"
-	L="${L0#*,}"
-	ape1="${L%%,*}"
-        L="${L#*,}"
-	ape2="${L%%,*}"
-        L="${L#*,}"
-	grupo="${L%%,*}"
-        L="${L#*,}"
-	nia="${L%%,*}"
-        L="${L#*,}"
-	dni="${L%%,*}"
-	if [ -z "$dni" ] || [ "$dni" = "NUL" ]; then
-		echo "Error, invalid DNI: $L0"
-	else
-		login="a${dni}"
-		if [ -z "$nia" ] || [ "$nia" = "NUL" ]; then
-			initpass="${nia}"
-			employee="${initpass}000"
-		else
-			initpass="$(strip_dni "${dni}")"
-			employee="9${initpass}000"
-		fi
-		gecos="$ape1 $ape2  $nombre"
-		echo "Adding user: $gecos"
-#		smbldap-useradd -a -g ALUMNOS -d "/datos/usuarios/alumnos/$login" -D "S:" -G "Domain Users" -o "ou=usuarios,dc=centro,dc=com" -c "$gecos"  || true
-		rc=0
-		echo "$initpass" |smbldap-useradd -a -g ALUMNOS -d "/datos/usuarios/alumnos/${login}" -D "S:" -G "Domain Users" -c "$gecos" -Z employeeNumber=$employee -P  -p "${login}" || rc=$?
-		if [ $rc -eq 0 ] ; then
-			echo ${login} >> "$TMP_FILE2"
-		fi
-#FUTURO: create homedir: se puede usar -m (requiere haber montado desde satanas)
-
+# try to add every group, if the group already exists, remove all members
+cat $TMP_FILE3 | while read g; do
+	G="al_${g}"
+	if ! smbldap-groupadd -a "$G" ; then
+		smbldap-groupmod -x "$(getent group "$G" |sed -e "s%^.*:%%")" "$G" || true
 	fi
+	# get list of members
+	G_USERS="$(sed -ne "/[[:blank:]]${G}$/{s%[[:blank:]].*$%%;p}" "$TMP_FILE2" |tr "\n" ",")"
+	G_USERS="${G_USERS%,}"
+	# if the list is not empty, add users to group
+	[ -z "$G_USERS" ] || smbldap-groupmod -m "$G_USERS" "$G" || true
 done
-# generar fichero con id 
-
-SED_RULE="/^$/d;/^dn:/s%^.*$%\n<alumno%;"
-
-ATTRIB_LIST="uid uidNumber employeeNumber sambaSID gidNumber sambaPrimaryGroupSID gecos"
-for f in $ATTRIB_LIST ; do
-	case "$f" in
-		uid)
-			F="login"
-			;;
-		gecos)
-			F="nombre_comp"
-			;;
-		*)
-			F="$f"
-			;;
-	esac
-	SED_RULE="${SED_RULE}/^$f:/{s%^$f: % $F=\"%;s%\$%\"%};"
-
-done
-
-SED_RULE="${SED_RULE}/^[[:blank:]]*login=/{p;s%login%DNI_NORM%;s%=\".%=\"%}"
-
-ldapsearch -LLL -x -b "dc=centro,dc=com" -D "uid=joindomain,ou=usuarios,dc=centro,dc=com" -W -f "$TMP_FILE2" '(&(objectClass=posixAccount)(uid=%s))' $ATTRIB_LIST | sed -e "$SED_RULE" |sed '1d;/^$/s%^%/>%;$a/>' > "$TMP_FILE3"
-
-# import to mysql ...
-mysql --local-infile=1 -u root -p -N -B -e "use itaca; delete from ldap_temp; load xml local infile '$TMP_FILE3' into table ldap_temp rows identified by '<alumno>';"
-
-"update alumnos, ldap_temp set alumnos.login=ldap_temp.logi"
-echo "Enter mySQL root password:"
-mysql -u root -p -N -B -e "use itaca; update alumnos set borrado='2' where borrado='1';"
 
 rm -f "$TMP_FILE"
+rm -f "$TMP_FILE2"
+rm -f "$TMP_FILE3"
 

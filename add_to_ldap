@@ -46,7 +46,7 @@ cat "$TMP_FILE" |while read l; do
 		login="a${dni}"
 		if [ -z "$nia" ] || [ "$nia" = "NUL" ]; then
 			initpass="${nia}"
-			employee="${initpass}000"
+			employee="6${initpass}000"
 		else
 			initpass="$(strip_dni "${dni}")"
 			employee="9${initpass}000"
@@ -68,6 +68,7 @@ done
 SED_RULE="/^$/d;/^dn:/s%^.*$%\n<alumno%;"
 
 ATTRIB_LIST="uid uidNumber employeeNumber sambaSID gidNumber sambaPrimaryGroupSID gecos"
+FIELD_LIST=""
 for f in $ATTRIB_LIST ; do
 	case "$f" in
 		uid)
@@ -81,6 +82,7 @@ for f in $ATTRIB_LIST ; do
 			;;
 	esac
 	SED_RULE="${SED_RULE}/^$f:/{s%^$f: % $F=\"%;s%\$%\"%};"
+	FIELD_LIST="$FIELD_LIST $F"
 
 done
 
@@ -89,11 +91,17 @@ SED_RULE="${SED_RULE}/^[[:blank:]]*login=/{p;s%login%DNI_NORM%;s%=\".%=\"%}"
 ldapsearch -LLL -x -b "dc=centro,dc=com" -D "uid=joindomain,ou=usuarios,dc=centro,dc=com" -W -f "$TMP_FILE2" '(&(objectClass=posixAccount)(uid=%s))' $ATTRIB_LIST | sed -e "$SED_RULE" |sed '1d;/^$/s%^%/>%;$a/>' > "$TMP_FILE3"
 
 # import to mysql ...
-mysql --local-infile=1 -u root -p -N -B -e "use itaca; delete from ldap_temp; load xml local infile '$TMP_FILE3' into table ldap_temp rows identified by '<alumno>';"
+IMPORT_SQL="use itaca; delete from ldap_temp; load xml local infile '$TMP_FILE3' into table ldap_temp rows identified by '<alumno>';"
 
-"update alumnos, ldap_temp set alumnos.login=ldap_temp.logi"
+UPDATE_SQL="update alumnos, ldap_temp set"
+for f in $FIELD_LIST ; do
+	UPDATE_SQL="$UPDATE_SQL alumnos.$f=ldap_temp.$f,"
+done
+UPDATE_SQL="alumnos.alta='0' where alumnos.DNI_NORM=ldap_temp.DNI_NORM;"
 echo "Enter mySQL root password:"
-mysql -u root -p -N -B -e "use itaca; update alumnos set borrado='2' where borrado='1';"
+mysql --local-infile=1 -u root -p -N -B -e "$IMPORT_SQL $UPDATE_SQL"
 
 rm -f "$TMP_FILE"
+rm -f "$TMP_FILE2"
+rm -f "$TMP_FILE3"
 

@@ -3,24 +3,33 @@ die() {
 	echo "$1" >&2
 	[ -z "$TMP_FILE" ] || rm -f "$TMP_FILE"
 	[ -z "$TMP_FILE2" ] || rm -f "$TMP_FILE2"
+	[ -z "$TMP_FILE3" ] || rm -f "$TMP_FILE3"
 	exit 1
 }
 
-strip_dni(){
-	echo "$1" |sed "s%[a-zA-Z]%%g"
-}
-
-echo "WARNING!!!: This script adds to ldap server all users tagged as 'new' ('alta = 1') in mySQL itaca.alumnos table"
+echo "WARNING!!!: This script updates groups in ldap server"
 echo "¿Do you want to proceed? (Write 'YES' in uppercase to continue)"
 read a
 [ "$a" = "YES" ] || die "Aborted due to user input"
-
-
 [ $(id -u) -eq 0 ] || die "You must be root to run this script"
- 
+
+
 TMP_FILE="$(tempfile)"
 TMP_FILE2="$(tempfile)"
 TMP_FILE3="$(tempfile)"
+
+# get list of 'old fashioned' groups
+ldapsearch -LLL -b ou=grupos,dc=centro,dc=com -D uid=joindomain,ou=usuarios,dc=centro,dc=com -W "(&(cn=GrpAc_*)(ObjectClass=posixGroup))" dn |sed "s%dn:[[:blank:]]*%%;/^$/d" > $TMP_FILE
+
+# delete every group:
+ldapdelete -D cn=admin,dc=centro,dc=com -W -f $TMP_FILE
+
+# get list of login/groups
+mysql -u root -p -N -B -e "use itaca; SELECT login, gacadcod FROM alumnos WHERE borrado='0'" > $TMP_FILE2 
+
+# get list of groups
+sed -e "s%^.*[[:blank:]]\+%%" $TMP_FILE2 |sort -u > $TMP_FILE > $TMP_FILE33
+ 
 
 echo "Enter mySQL root password:"
 mysql -u root -p -N -B -e "use itaca; select nombre, apellido1, apellido2, gacadcod, NIA, DNI_NORM from alumnos where alta='1';" > "$TMP_FILE"

@@ -57,7 +57,7 @@ cat "$TMP_FILE" |while read l; do
 			initpass="$(strip_dni "${dni}")"
 			employee="9${initpass}000"
 		fi
-		gecos="$(echo "$ape1 $ape2  $nombre" sed -e "s%ñ%ny%g;s%Ñ%NY%g" |iconv --to-code ASCII//TRANSLIT)"
+		gecos="$(echo "$ape1 $ape2  $nombre" |sed -e "s%ñ%ny%g;s%Ñ%NY%g" |iconv --to-code ASCII//TRANSLIT)"
 		echo "Adding user: $gecos"
 #		smbldap-useradd -a -g ALUMNOS -d "/datos/usuarios/alumnos/$login" -D "S:" -G "Domain Users" -o "ou=usuarios,dc=centro,dc=com" -c "$gecos"  || true
 		rc=0

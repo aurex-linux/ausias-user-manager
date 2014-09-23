@@ -32,11 +32,12 @@ read a
 [ $(id -u) -eq 0 ] || die "You must be root to run this script"
  
 TMP_FILE="$(tempfile)"
-#TMP_FILE2="$(tempfile)"
-TMP_FILE2="/tmp/alta-correcta.txt"
+TMP_FILE2="$(tempfile)"
+#TMP_FILE2="/tmp/alta-correcta.txt"
 TMP_FILE3="$(tempfile)"
-#TMP_FILE4="$(tempfile)"
-TMP_FILE4="/tmp/alta-erronea.txt"
+#TMP_FILE3="/tmp/altas-ya-en-ldap.xml"
+TMP_FILE4="$(tempfile)"
+#TMP_FILE4="/tmp/alta-erronea.txt"
 
 # 2. añadir alumnos nuevos de itaca
 # INSERT INTO alumnos ( nombre, apellido1, apellido2, gacadcod, nac_fecha, sexo, NIA, DNI_NORM, alta )
@@ -74,7 +75,9 @@ cat "$TMP_FILE" |while read l; do
 			initpass="$(strip_dni "${dni}")"
 			employee="9${initpass}000"
 		fi
-		gecos="$(echo "$ape1 $ape2  $nombre" |sed -e "s%ñ%ny%g;s%Ñ%NY%g" |iconv --to-code ASCII//TRANSLIT)"
+		gecos="$(echo "$ape1 $ape2  $nombre" |sed -e "s%ñ%ny%g;s%Ñ%NY%g" |iconv --to-code ASCII//TRANSLIT |sed -e "s%^[[:blank:]]*%%;s%[[:blank:]]*$%%")"
+#	note: remove leading or trailing spaces because it forces smblap-tools to encode gecos in base64
+#             may be an awfull bug ???? (report to sto ;-) )
 		echo "Adding user: $gecos"
 #		smbldap-useradd -a -g ALUMNOS -d "/datos/usuarios/alumnos/$login" -D "S:" -G "Domain Users" -o "ou=usuarios,dc=centro,dc=com" -c "$gecos"  || true
 		rc=0
@@ -90,8 +93,6 @@ cat "$TMP_FILE" |while read l; do
 
 	fi
 done
-echo "pulse una tecla"
-read a
 
 # generar fichero con id 
 
@@ -116,10 +117,13 @@ for f in $ATTRIB_LIST ; do
 
 done
 
+#get dni from login
 SED_RULE="${SED_RULE}/^[[:blank:]]*login=/{p;s%login%DNI_NORM%;s%=\".%=\"%}"
 
 echo "Enter joindomain password:"
-ldapsearch -LLL -x -b "dc=centro,dc=com" -D "uid=joindomain,ou=usuarios,dc=centro,dc=com" -W -f "$TMP_FILE2" '(&(objectClass=posixAccount)(uid=%s))' $ATTRIB_LIST | sed -e "$SED_RULE" |sed '1d;/^$/s%^%/>%;$a/>' > "$TMP_FILE3"
+ldapsearch -LLL -x -b "dc=centro,dc=com" -D "uid=joindomain,ou=usuarios,dc=centro,dc=com" -W -f "$TMP_FILE2" '(&(objectClass=posixAccount)(uid=%s))' $ATTRIB_LIST | sed -e "$SED_RULE" |sed '1d;/^$/s%^%/>%;$a/>' |sed -e "/DNI_NORM=/{s%\(=.*\)$%\U\1%;/0[A-Z][[:digit:]]/s%0\([A-Z]\)\([[:digit:]]\)%\10\2%}" > "$TMP_FILE3"
+# last sed is to normalize DNI
+
 
 # import to mysql ...
 IMPORT_SQL="use itaca; delete from ldap_temp; load xml local infile '$TMP_FILE3' into table ldap_temp rows identified by '<alumno>';"

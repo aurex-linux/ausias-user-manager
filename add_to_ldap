@@ -1,14 +1,26 @@
 #!/bin/sh
 die() {
 	echo "$1" >&2
-	[ -z "$TMP_FILE" ] || rm -f "$TMP_FILE"
-	[ -z "$TMP_FILE2" ] || rm -f "$TMP_FILE2"
+	rm -f "$TMP_FILE"
+	rm -f "$TMP_FILE2"
+	rm -f "$TMP_FILE3"
+	rm -f "$TMP_FILE4"
 	exit 1
 }
 
 strip_dni(){
 	# remove letters and select the last 8 chars
 	echo "$1" |sed "s%[a-zA-Z]%%g;s%^.*\(.\{8\}\)$%\1%"
+}
+
+gen_login(){
+	DNI="$1"
+	if echo "$DNI" |grep -q "^[a-zA-Z]0"; then
+		login="0${DNI:0:1}${DNI:2:8}"
+	else
+		login="$DNI"
+	fi
+	echo "a${login}" |tr "[:upper:]" "[:lower:]"
 }
 
 echo "WARNING!!!: This script adds to ldap server all users tagged as 'new' ('alta = 1') in mySQL itaca.alumnos table"
@@ -20,8 +32,11 @@ read a
 [ $(id -u) -eq 0 ] || die "You must be root to run this script"
  
 TMP_FILE="$(tempfile)"
-TMP_FILE2="$(tempfile)"
+#TMP_FILE2="$(tempfile)"
+TMP_FILE2="/tmp/alta-correcta.txt"
 TMP_FILE3="$(tempfile)"
+#TMP_FILE4="$(tempfile)"
+TMP_FILE4="/tmp/alta-erronea.txt"
 
 # 2. añadir alumnos nuevos de itaca
 # INSERT INTO alumnos ( nombre, apellido1, apellido2, gacadcod, nac_fecha, sexo, NIA, DNI_NORM, alta )
@@ -49,7 +64,7 @@ cat "$TMP_FILE" |while read l; do
 	if [ -z "$dni" ] || [ "$dni" = "NUL" ]; then
 		echo "Error, invalid DNI: $L0"
 	else
-		login="$(echo "a${dni}" |tr "[:upper:]" "[:lower:]")"
+		login="$(gen_login "${dni}")"
 		if [ -z "$nia" ] || [ "$nia" = "NUL" ]; then
 			initpass="${nia}"
 			employee="6${initpass}000"
@@ -63,12 +78,18 @@ cat "$TMP_FILE" |while read l; do
 		rc=0
 		echo "$initpass" |smbldap-useradd -a -g ALUMNOS -d "/datos/usuarios/alumnos/${login}" -D "S:" -G "Domain Users" -c "$gecos" -Z employeeNumber=$employee -P  -p "${login}" || rc=$?
 		if [ $rc -eq 0 ] ; then
+			echo "Correcto"
 			echo ${login} >> "$TMP_FILE2"
+		else
+			echo "Error"
+			echo ${login} >> "$TMP_FILE4"
 		fi
 #FUTURO: create homedir: se puede usar -m (requiere haber montado desde satanas)
 
 	fi
 done
+echo "pulse una tecla"
+read a
 
 # generar fichero con id 
 
@@ -95,6 +116,7 @@ done
 
 SED_RULE="${SED_RULE}/^[[:blank:]]*login=/{p;s%login%DNI_NORM%;s%=\".%=\"%}"
 
+echo "Enter joindomain password:"
 ldapsearch -LLL -x -b "dc=centro,dc=com" -D "uid=joindomain,ou=usuarios,dc=centro,dc=com" -W -f "$TMP_FILE2" '(&(objectClass=posixAccount)(uid=%s))' $ATTRIB_LIST | sed -e "$SED_RULE" |sed '1d;/^$/s%^%/>%;$a/>' > "$TMP_FILE3"
 
 # import to mysql ...
@@ -111,4 +133,5 @@ mysql --local-infile=1 -u root -p -N -B -e "$IMPORT_SQL $UPDATE_SQL"
 rm -f "$TMP_FILE"
 rm -f "$TMP_FILE2"
 rm -f "$TMP_FILE3"
+rm -f "$TMP_FILE4"
 

@@ -64,7 +64,9 @@ cat "$TMP_FILE" |while read l; do
 	if [ -z "$dni" ] || [ "$dni" = "NUL" ]; then
 		echo "Error, invalid DNI: $L0"
 	else
+		echo "DNI: $dni"
 		login="$(gen_login "${dni}")"
+		echo "login: $login"
 		if [ -z "$nia" ] || [ "$nia" = "NUL" ]; then
 			initpass="${nia}"
 			employee="6${initpass}000"

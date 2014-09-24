@@ -69,10 +69,10 @@ cat "$TMP_FILE" |while read l; do
 		login="$(gen_login "${dni}")"
 		echo "login: $login"
 		if [ -z "$nia" ] || [ "$nia" = "NUL" ]; then
-			initpass="${nia}"
+			initpass="$(strip_dni "${dni}")"
 			employee="6${initpass}000"
 		else
-			initpass="$(strip_dni "${dni}")"
+			initpass="${nia}"
 			employee="9${initpass}000"
 		fi
 		gecos="$(echo "$ape1 $ape2  $nombre" |sed -e "s%ñ%ny%g;s%Ñ%NY%g" |iconv --to-code ASCII//TRANSLIT |sed -e "s%^[[:blank:]]*%%;s%[[:blank:]]*$%%")"

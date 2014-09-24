@@ -132,7 +132,7 @@ UPDATE_SQL="update alumnos, ldap_temp set"
 for f in $FIELD_LIST ; do
 	UPDATE_SQL="$UPDATE_SQL alumnos.$f=ldap_temp.$f,"
 done
-UPDATE_SQL="alumnos.alta='0' where alumnos.DNI_NORM=ldap_temp.DNI_NORM;"
+UPDATE_SQL="$UPDATE_SQL alumnos.alta='0' where alumnos.DNI_NORM=ldap_temp.DNI_NORM;"
 echo "Enter mySQL root password:"
 mysql --local-infile=1 -u root -p -N -B -e "$IMPORT_SQL $UPDATE_SQL"
 

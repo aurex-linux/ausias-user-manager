@@ -29,7 +29,7 @@ for f in /etc/smbldap-tools/smbldap_bind.conf  /etc/smbldap-tools/smbldap.conf; 
 	. $f
 done
 [ -r /root/.my.cnf ] || die "Missing mysql configurarion in /root/.my.cnf"
-export $HOME=/root
+export HOME=/root
 
 # test data
 login="$1"
@@ -69,13 +69,14 @@ sambaPwdCanChange: 0
 sambaSID: $(get_from_db "sambaSID")
 sn: $login
 uid: $login
-uidNumber: $uidNumber
+uidNumber: $uidnumber
 sambaAcctFlags: [U]
 sambaPwdLastSet: 1411550710
 sambaPwdMustChange: 1419326710
 shadowLastChange: 16337
 shadowMax: 90
 EOF
+
 rc=0
 ldapadd -x -D "$masterDN" -w "$masterPw" -h localhost -f $LDIF || rc=$?
 

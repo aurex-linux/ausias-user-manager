@@ -75,13 +75,15 @@ cat "$TMP_FILE" |while read l; do
 			initpass="${nia}"
 			employee="9${initpass}000"
 		fi
-		gecos="$(echo "$ape1 $ape2  $nombre" |sed -e "s%ñ%ny%g;s%Ñ%NY%g" |iconv --to-code ASCII//TRANSLIT |sed -e "s%^[[:blank:]]*%%;s%[[:blank:]]*$%%")"
+		ape_clean="$(echo "$ape1 $ape2" |sed -e "s%ñ%ny%g;s%Ñ%NY%g" |iconv --to-code ASCII//TRANSLIT |sed -e "s%^[[:blank:]]*%%;s%[[:blank:]]*$%%")"
+		nom_clean="$(echo "$nombre" |sed -e "s%ñ%ny%g;s%Ñ%NY%g" |iconv --to-code ASCII//TRANSLIT |sed -e "s%^[[:blank:]]*%%;s%[[:blank:]]*$%%")"
 #	note: remove leading or trailing spaces because it forces smblap-tools to encode gecos in base64
 #             may be an awfull bug ???? (report to sto ;-) )
+		gecos="$ape_clean  $nom_clean"
 		echo "Adding user: $gecos"
 #		smbldap-useradd -a -g ALUMNOS -d "/datos/usuarios/alumnos/$login" -D "S:" -G "Domain Users" -o "ou=usuarios,dc=centro,dc=com" -c "$gecos"  || true
 		rc=0
-		echo "$initpass" |smbldap-useradd -a -g ALUMNOS -d "/datos/usuarios/alumnos/${login}" -D "S:" -G "Domain Users" -c "$gecos" -Z employeeNumber=$employee -P  -p "${login}" || rc=$?
+		echo "$initpass" |smbldap-useradd -a -g ALUMNOS -d "/datos/usuarios/alumnos/${login}" -D "S:" -G "Domain Users" -c "$gecos" -S "$ape_clean" -N "$nom_clean" -Z employeeNumber=$employee -P  -p "${login}" || rc=$?
 		if [ $rc -eq 0 ] ; then
 			echo "Correcto"
 			echo ${login} >> "$TMP_FILE2"

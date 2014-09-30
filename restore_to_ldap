@@ -82,7 +82,7 @@ ldapadd -x -D "$masterDN" -w "$masterPw" -h localhost -f $LDIF || rc=$?
 
 rm -f "$LDIF"
 [ $rc -eq 0 ] || die "Error restoring $login"
-echo "$login restored to ldap with idnumber $uidNumber ($gecos)"
+echo "$login restored to ldap with idnumber $uidnumber ($gecos)"
 INIT_PASS="$(get_from_db "NIA")"
 [ "$INIT_PASS" ] || INIT_PASS="$login"
 echo "${INIT_PASS}\n${INIT_PASS}" |smbldap-passwd "$login" || die "Error setting password"

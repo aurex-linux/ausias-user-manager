@@ -4,6 +4,10 @@ die() {
 	exit 1
 }
 
+usage(){
+	die "$0 <CSV_FILE>"
+}
+
 echo "WARNING!!!: This script deletes from ldap server all users tagged as 'deleted' ('borrado = 1') in mySQL itaca.alumnos table"
 echo "¿Do you want to proceed? (Write 'YES' in uppercase to continue)"
 read a
@@ -11,12 +15,14 @@ read a
 
 
 [ $(id -u) -eq 0 ] || die "You must be root to run this script"
- 
-TMP_FILE="$(tempfile)"
 
-echo "Enter mySQL root password:"
+[ "$1" ] || usage
+CSV_FILE="$1"
+[ -r "$CSV_FILE" ] || die "Error reading $CSV_FILE"
+
 #Paso 1
 #convertir el csv de itaca (alumnos matriculados en el curso actual) a una tabla en mysql (ahora "table 14"). Import desde mysql
+./csv2ldap ../ausias-user-manager-data/
 
 #Paso 2 
 # extraer en una tabla a los alumnos existentes en el LDAP (login con formato a[[:digit:]]+).Tabla ldap_tmp
@@ -36,6 +42,8 @@ echo "Enter mySQL root password:"
 
 #Paso 5 
 # eliminar a todos los alumnos con el campo alumnos.borrado="1" en el LDAP y modificar el campo borrado="2"
+TMP_FILE="$(tempfile)"
+echo "Enter mySQL root password:"
 mysql -u root -p -N -B -e "use itaca; select login from alumnos where borrado='1';" > "$TMP_FILE"
 
 [ -s "$TMP_FILE" ] || die "Error generating file from mysql"

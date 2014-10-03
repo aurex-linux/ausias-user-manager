@@ -13,9 +13,15 @@
 #License: MIT License
 #Copyright 2010: FB36 (http://code.activestate.com/recipes/users/4172570/)
 import csv
+import sys
 
-csvFile = 'alumnos.csv'
-xmlFile = 'alumnos.xml'
+# check arguments
+if len(sys.argv) < 3 :
+        print 'Usage: csv2xml.py <inputcsvfile> <ouputxmlfile>'
+	sys.exit()
+
+csvFile = sys.argv[1]
+xmlFile = sys.argv[2]
 
 csvData = csv.reader(open(csvFile))
 xmlData = open(xmlFile, 'w')

@@ -25,7 +25,7 @@ xmlFile = sys.argv[2]
 
 csvData = csv.reader(open(csvFile))
 xmlData = open(xmlFile, 'w')
-xmlData.write('<?xml version="1.0"?>' + "\n")
+xmlData.write('<?xml version="1.0" encoding="UTF-8" ?>' + "\n")
 # there must be only one top-level tag
 xmlData.write('<csv_data>' + "\n")
 

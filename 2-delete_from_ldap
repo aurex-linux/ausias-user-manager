@@ -1,38 +1,55 @@
 #!/bin/sh
-
-
-echo "WARNING!!!: This script deletes from ldap server all users tagged as 'deleted' ('borrado = 1') in mySQL itaca.alumnos table"
-echo "¿Do you want to proceed? (Write 'YES' in uppercase to continue)"
-read a
-[ "$a" = "YES" ] || die "Aborted due to user input"
-
 # source common files and do basic checkings
 
-. ausias-user-manager-common
+. ./ausias-user-manager-common
 
-# common funcs
-usage(){
-	die "$0 <CSV_FILE>"
+ldap2xml() {
+	SED_RULE="/^$/d;/^dn:/s%^.*$%\n<alumno%;"
+
+	ATTRIB_LIST="uid uidNumber employeeNumber sambaSID gidNumber sambaPrimaryGroupSID gecos"
+	for f in $ATTRIB_LIST ; do
+		case "$f" in
+			uid)
+				F="login"
+				;;
+			gecos) 
+        	                F="nombre_comp"
+                	        ;;
+
+			*)
+				F="$f"
+				;;
+		esac
+		SED_RULE="${SED_RULE}/^$f:/{s%^$f: % $F=\"%;s%\$%\"%};"
+
+	done
+
+	SED_RULE="${SED_RULE}/^[[:blank:]]*login=/{p;s%login%DNI_NORM%;s%=\".%=\"%}"
+	ALU_GID="$(getent group ALUMNOS  |cut -f 3 -d :)"
+	# get ldif
+	#TMP_FILE="$(tempfile)"
+	ldapsearch -LLL -x -b "dc=centro,dc=com" -D "$masterDN" -w "$masterPw" "(&(objectClass=posixAccount)(gidnumber=$ALU_GID))" $ATTRIB_LIST | sed -e "$SED_RULE" |sed '1d;/^$/s%^%/>%;$a/>'
 }
-
+ 
 
 # more checks
 
-[ "$1" ] || usage
-CSV_FILE="$1"
-[ -r "$CSV_FILE" ] || die "Error reading $CSV_FILE"
-
-#Paso 1
-#convertir el csv de itaca (alumnos matriculados en el curso actual) a una tabla en mysql (ahora "table 14"). Import desde mysql
-
-TMP_XML="$(tempfile)"
-./csv2ldap "$CSV_FILE" "$TMP_XML"
+user_confirmation "This script deletes from ldap server all users tagged as 'deleted' ('borrado = 1') in mySQL itaca.alumnos table"
 
 #Paso 2 
 # extraer en una tabla a los alumnos existentes en el LDAP (login con formato a[[:digit:]]+).Tabla ldap_tmp
 # buscar por login todos los alumnos de la tabla ldap_tmp que no existan en la tabla de alumnos
 # añadirlos y marcarlos como manuales (alumnos.manual="1")
-# el campo DNI_NORM se construye a partir del campo login de la tabla ldap 
+# el campo DNI_NORM se construye a partir del campo login de la tabla ldap
+
+TMP_XML="$(tempfile)"
+ldap2xml > $TMP_XML
+mysql --local-infile=1 -N -B -e "use itaca; truncate table ldap_temp; load xml local infile '$TMP_XML' into table ldap_temp character set utf8 rows identified by '<alumno>';"
+
+# update DNI for legacy alXXXXX accounts
+mysql -N -B -e "use itaca; delete from ldap_temp where login='alumno'; update ldap_temp, alumnos set ldap_temp.DNI_NORM=alumnos.DNI_NORM where ldap_temp.login like 'al%' and ldap_temp.login=alumnos.login"
+
+exit 0
 
 #Paso 3
 # en la tabla alumnos, poner el campo borrado="1" a todos los alumnos que tengan los campos:

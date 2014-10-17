@@ -56,16 +56,20 @@ exit 0
 # borrado="0" && manual="0" && DNI_NORM no existe en dniok ("table 14", alumnos matriculados en el curso actual)
 # update alumnos set borrado="1" where borrado="0" and manual=”0” and dni_norm not in (select dniok from `TABLE 14`)
 
+mysql -N -B -e "use itaca; update alumnos set borrado='1' where borrado='0' and manual='0' and DNI_NORM not in (select dniok from itaca_temp)"
+
+
 #Paso 4
 # copiar el balance desde la tabla papercut.tbl_account.balance al campo balance de los alumnos con borrado="1"
 #update alumnos, papercut.tbl_account set alumnos.balance=papercut.tbl_account.balance 
 #where login=papercut.tbl_account.account_name and alumnos.borrado="1"
 
+mysql -N -B -e "use itaca; update alumnos, papercut.tbl_account set alumnos.balance=papercut.tbl_account.balance where login=papercut.tbl_account.account_name and alumnos.borrado='1'"
+
 #Paso 5 
 # eliminar a todos los alumnos con el campo alumnos.borrado="1" en el LDAP y modificar el campo borrado="2"
 TMP_FILE="$(tempfile)"
-echo "Enter mySQL root password:"
-mysql -u root -p -N -B -e "use itaca; select login from alumnos where borrado='1';" > "$TMP_FILE"
+mysql -N -B -e "use itaca; select login from alumnos where borrado='1';" > "$TMP_FILE"
 
 [ -s "$TMP_FILE" ] || die "Error generating file from mysql"
 
@@ -73,9 +77,8 @@ cat "$TMP_FILE" |while read l; do
 	echo "Deleting user: $l"
 	smbldap-userdel $l || true
 done
-
-echo "Enter mySQL root password:"
-mysql -u root -p -N -B -e "use itaca; update alumnos set borrado='2' where borrado='1';"
+# falta poner la fecha de borrado !!!!!!
+mysql -N -B -e "use itaca; update alumnos set borrado='2' where borrado='1';"
 
 rm -f "$TMP_FILE"
 

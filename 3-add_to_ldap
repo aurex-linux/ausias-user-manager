@@ -1,4 +1,7 @@
 #!/bin/bash
+
+. ./ausias-user-manager-common
+
 die() {
 	echo "$1" >&2
 	rm -f "$TMP_FILE"
@@ -23,13 +26,8 @@ gen_login(){
 	echo "a${login}" |tr "[:upper:]" "[:lower:]"
 }
 
-echo "WARNING!!!: This script adds to ldap server all users tagged as 'new' ('alta = 1') in mySQL itaca.alumnos table"
-echo "¿Do you want to proceed? (Write 'YES' in uppercase to continue)"
-read a
-[ "$a" = "YES" ] || die "Aborted due to user input"
 
-
-[ $(id -u) -eq 0 ] || die "You must be root to run this script"
+user_confirmation "This script adds to ldap server all users tagged as 'new' ('alta = 1') in mySQL itaca.alumnos table"
  
 TMP_FILE="$(tempfile)"
 TMP_FILE2="$(tempfile)"
@@ -38,6 +36,17 @@ TMP_FILE3="$(tempfile)"
 #TMP_FILE3="/tmp/altas-ya-en-ldap.xml"
 TMP_FILE4="$(tempfile)"
 #TMP_FILE4="/tmp/alta-erronea.txt"
+
+#  Buscar en la tabla alumnos a aquellos alumnos marcados como manual=”1” y buscarlos en la tabla “table 14”. Si existen, cambiar el campo manual=”0”
+
+mysql -N -B -e "use itaca; update alumnos set manual='0' where manual='1' and DNI_NORM in (select dniok from itaca_temp);"
+
+# rescatar alumnos borrados (desmarcar el boradlo)
+
+
+
+
+# actualizar atributos desde itaca_temp 
 
 # 2. añadir alumnos nuevos de itaca
 # INSERT INTO alumnos ( nombre, apellido1, apellido2, gacadcod, nac_fecha, sexo, NIA, DNI_NORM, alta )

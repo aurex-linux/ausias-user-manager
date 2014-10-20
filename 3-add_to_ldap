@@ -43,14 +43,18 @@ mysql -N -B -e "use itaca; update alumnos set manual='0' where manual='1' and DN
 
 # rescatar alumnos borrados (desmarcar el boradlo)
 
+mysql -N -B -e "use itaca; update alumnos set borrado='0',alta='1' where borrado<>'0' and DNI_NORM in (select dniok from itaca_temp);"
 
 
 
 # actualizar atributos desde itaca_temp 
 
+mysql -N -B -e "use itaca; UPDATE alumnos,itaca_temp SET alumnos.nombre=itaca_temp.nombre, alumnos.apellido1=itaca_temp.apellido1, alumnos.apellido2=itaca_temp.apellido2, alumnos.gacadcod=itaca_temp.grupo, alumnos.nac_fecha=itaca_temp.fechanacimiento, alumnos.sexo=itaca_temp.sexo, alumnos.NIA=itaca_temp.nia, alumnos.DNI_NORM=itaca_temp.dniok;"
+
+
+
 # 2. añadir alumnos nuevos de itaca
-# INSERT INTO alumnos ( nombre, apellido1, apellido2, gacadcod, nac_fecha, sexo, NIA, DNI_NORM, alta )
-# SELECT Nombre as nombre, Apellido1 as apellido1, Apellido2 as apellido2, Grupo as gacadcod, `Fecha Nacimiento` as nac_fecha,Sexo as sexo,NIA as NIA,dniok as DNI_NORM, '1' as alta FROM `itaca_current` where dniok not in (select DNI_NORM from alumnos)
+ mysql -N -B -e "use itaca; INSERT INTO alumnos ( nombre, apellido1, apellido2, gacadcod, nac_fecha, sexo, NIA, DNI_NORM, alta ) SELECT nombre,apellido1, apellido2, grupo, fechanacimiento as nac_fecha,sexo,nia as NIA,dniok as DNI_NORM, '1' as alta FROM `itaca_temp` where dniok not in (select DNI_NORM from alumnos);"
 
 
 echo "Enter mySQL root password:"

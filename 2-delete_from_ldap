@@ -49,14 +49,13 @@ mysql --local-infile=1 -N -B -e "use itaca; truncate table ldap_temp; load xml l
 # update DNI for legacy alXXXXX accounts
 mysql -N -B -e "use itaca; delete from ldap_temp where login='alumno'; update ldap_temp, alumnos set ldap_temp.DNI_NORM=alumnos.DNI_NORM where ldap_temp.login like 'al%' and ldap_temp.login=alumnos.login"
 
-exit 0
 
 #Paso 3
 # en la tabla alumnos, poner el campo borrado="1" a todos los alumnos que tengan los campos:
 # borrado="0" && manual="0" && DNI_NORM no existe en dniok ("table 14", alumnos matriculados en el curso actual)
 # update alumnos set borrado="1" where borrado="0" and manual=”0” and dni_norm not in (select dniok from `TABLE 14`)
 
-mysql -N -B -e "use itaca; update alumnos set borrado='1' where borrado='0' and manual='0' and DNI_NORM not in (select dniok from itaca_temp)"
+mysql -N -B -e "use itaca; update alumnos set borrado='1' where borrado='0' and manual='0' and DNI_NORM not in (select dniok from itaca_temp);"
 
 
 #Paso 4
@@ -64,7 +63,7 @@ mysql -N -B -e "use itaca; update alumnos set borrado='1' where borrado='0' and 
 #update alumnos, papercut.tbl_account set alumnos.balance=papercut.tbl_account.balance 
 #where login=papercut.tbl_account.account_name and alumnos.borrado="1"
 
-mysql -N -B -e "use itaca; update alumnos, papercut.tbl_account set alumnos.balance=papercut.tbl_account.balance where login=papercut.tbl_account.account_name and alumnos.borrado='1'"
+mysql -N -B -e "use itaca; update alumnos, papercut.tbl_account set alumnos.balance=papercut.tbl_account.balance where login=papercut.tbl_account.account_name and alumnos.borrado='1';"
 
 #Paso 5 
 # eliminar a todos los alumnos con el campo alumnos.borrado="1" en el LDAP y modificar el campo borrado="2"
@@ -78,7 +77,8 @@ cat "$TMP_FILE" |while read l; do
 	smbldap-userdel $l || true
 done
 # falta poner la fecha de borrado !!!!!!
-mysql -N -B -e "use itaca; update alumnos set borrado='2' where borrado='1';"
+mysql -N -B -e "use itaca; update alumnos set borrado='2', fecha_borrado=NOW() where borrado='1';"
 
 rm -f "$TMP_FILE"
+exit 0
 

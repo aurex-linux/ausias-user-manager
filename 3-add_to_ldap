@@ -49,16 +49,15 @@ mysql -N -B -e "use itaca; update alumnos set borrado='0',alta='1' where borrado
 
 # actualizar atributos desde itaca_temp 
 
-mysql -N -B -e "use itaca; UPDATE alumnos,itaca_temp SET alumnos.nombre=itaca_temp.nombre, alumnos.apellido1=itaca_temp.apellido1, alumnos.apellido2=itaca_temp.apellido2, alumnos.gacadcod=itaca_temp.grupo, alumnos.nac_fecha=itaca_temp.fechanacimiento, alumnos.sexo=itaca_temp.sexo, alumnos.NIA=itaca_temp.nia, alumnos.DNI_NORM=itaca_temp.dniok;"
+mysql -N -B -e "use itaca; UPDATE alumnos,itaca_temp SET alumnos.nombre=itaca_temp.nombre, alumnos.apellido1=itaca_temp.apellido1, alumnos.apellido2=itaca_temp.apellido2, alumnos.gacadcod=itaca_temp.grupo, alumnos.nac_fecha=itaca_temp.fechanacimiento, alumnos.sexo=itaca_temp.sexo, alumnos.NIA=itaca_temp.nia where alumnos.DNI_NORM=itaca_temp.dniok;"
 
 
 
 # 2. añadir alumnos nuevos de itaca
- mysql -N -B -e "use itaca; INSERT INTO alumnos ( nombre, apellido1, apellido2, gacadcod, nac_fecha, sexo, NIA, DNI_NORM, alta ) SELECT nombre,apellido1, apellido2, grupo, fechanacimiento as nac_fecha,sexo,nia as NIA,dniok as DNI_NORM, '1' as alta FROM `itaca_temp` where dniok not in (select DNI_NORM from alumnos);"
+mysql -N -B -e "use itaca; INSERT INTO alumnos ( nombre, apellido1, apellido2, gacadcod, nac_fecha, sexo, NIA, DNI_NORM, alta ) SELECT nombre,apellido1, apellido2, grupo, fechanacimiento as nac_fecha,sexo,nia as NIA,dniok as DNI_NORM, '1' as alta FROM `itaca_temp` where dniok not in (select DNI_NORM from alumnos);"
 
 
-echo "Enter mySQL root password:"
-mysql -u root -p -N -B -e "use itaca; select nombre, apellido1, apellido2, gacadcod, NIA, DNI_NORM from alumnos where alta='1';" > "$TMP_FILE"
+mysql -N -B -e "use itaca; select nombre, apellido1, apellido2, gacadcod, NIA, DNI_NORM from alumnos where alta='1';" > "$TMP_FILE"
 
 [ -s "$TMP_FILE" ] || die "Error generating file from mysql"
 
@@ -136,7 +135,7 @@ done
 SED_RULE="${SED_RULE}/^[[:blank:]]*login=/{p;s%login%DNI_NORM%;s%=\".%=\"%}"
 
 echo "Enter joindomain password:"
-ldapsearch -LLL -x -b "dc=centro,dc=com" -D "uid=joindomain,ou=usuarios,dc=centro,dc=com" -W -f "$TMP_FILE2" '(&(objectClass=posixAccount)(uid=%s))' $ATTRIB_LIST | sed -e "$SED_RULE" |sed '1d;/^$/s%^%/>%;$a/>' |sed -e "/DNI_NORM=/{s%\(=.*\)$%\U\1%;/0[A-Z][[:digit:]]/s%0\([A-Z]\)\([[:digit:]]\)%\10\2%}" > "$TMP_FILE3"
+ldapsearch -LLL -x -b "dc=centro,dc=com" -D "$masterDN" -w "$masterPw" -f "$TMP_FILE2" '(&(objectClass=posixAccount)(uid=%s))' $ATTRIB_LIST | sed -e "$SED_RULE" |sed '1d;/^$/s%^%/>%;$a/>' |sed -e "/DNI_NORM=/{s%\(=.*\)$%\U\1%;/0[A-Z][[:digit:]]/s%0\([A-Z]\)\([[:digit:]]\)%\10\2%}" > "$TMP_FILE3"
 # last sed is to normalize DNI
 
 
@@ -149,10 +148,11 @@ for f in $FIELD_LIST ; do
 done
 UPDATE_SQL="$UPDATE_SQL alumnos.alta='0' where alumnos.DNI_NORM=ldap_temp.DNI_NORM;"
 echo "Enter mySQL root password:"
-mysql --local-infile=1 -u root -p -N -B -e "$IMPORT_SQL $UPDATE_SQL"
+mysql --local-infile=1 -N -B -e "$IMPORT_SQL $UPDATE_SQL"
 
 rm -f "$TMP_FILE"
 rm -f "$TMP_FILE2"
 rm -f "$TMP_FILE3"
 rm -f "$TMP_FILE4"
 
+exit 0

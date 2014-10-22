@@ -134,7 +134,6 @@ done
 #get dni from login
 SED_RULE="${SED_RULE}/^[[:blank:]]*login=/{p;s%login%DNI_NORM%;s%=\".%=\"%}"
 
-echo "Enter joindomain password:"
 ldapsearch -LLL -x -b "dc=centro,dc=com" -D "$masterDN" -w "$masterPw" -f "$TMP_FILE2" '(&(objectClass=posixAccount)(uid=%s))' $ATTRIB_LIST | sed -e "$SED_RULE" |sed '1d;/^$/s%^%/>%;$a/>' |sed -e "/DNI_NORM=/{s%\(=.*\)$%\U\1%;/0[A-Z][[:digit:]]/s%0\([A-Z]\)\([[:digit:]]\)%\10\2%}" > "$TMP_FILE3"
 # last sed is to normalize DNI
 
@@ -147,7 +146,6 @@ for f in $FIELD_LIST ; do
 	UPDATE_SQL="$UPDATE_SQL alumnos.$f=ldap_temp.$f,"
 done
 UPDATE_SQL="$UPDATE_SQL alumnos.alta='0' where alumnos.DNI_NORM=ldap_temp.DNI_NORM;"
-echo "Enter mySQL root password:"
 mysql --local-infile=1 -N -B -e "$IMPORT_SQL $UPDATE_SQL"
 
 rm -f "$TMP_FILE"

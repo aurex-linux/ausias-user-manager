@@ -20,7 +20,8 @@ TMP_FILE3="$(tempfile)"
 
 # get list of 'old fashioned' groups
 echo "password de cn=admin,dc=centro,dc=com"
-ldapsearch -LLL -b ou=grupos,dc=centro,dc=com -D cn=admin,dc=centro,dc=com -W "(&(cn=GrpAc_*)(ObjectClass=posixGroup))" dn |sed "s%dn:[[:blank:]]cn=*%%;s%,.*$%%;/^$/d" > $TMP_FILE
+#ldapsearch -LLL -b ou=grupos,dc=centro,dc=com -D cn=admin,dc=centro,dc=com -W "(&(cn=GrpAc_*)(ObjectClass=posixGroup))" dn |sed "s%dn:[[:blank:]]cn=*%%;s%,.*$%%;/^$/d" > $TMP_FILE
+ldapsearch -LLL -b ou=grupos,dc=centro,dc=com -D cn=admin,dc=centro,dc=com -W "(&(cn=GrpAc_*)(ObjectClass=posixGroup))" dn |sed "s%dn:[[:blank:]]%%;/^$/d" > $TMP_FILE
 
 # delete every group:
 echo "password de cn=admin,dc=centro,dc=com"

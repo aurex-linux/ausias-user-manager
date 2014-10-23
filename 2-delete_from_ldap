@@ -50,9 +50,7 @@ mysql --local-infile=1 -N -B -e "use itaca; truncate table ldap_temp; load xml l
 mysql -N -B -e "use itaca; delete from ldap_temp where login='alumno'; update ldap_temp, alumnos set ldap_temp.DNI_NORM=alumnos.DNI_NORM where ldap_temp.login like 'al%' and ldap_temp.login=alumnos.login"
 
 # insert manual users 
-#select from ldap_temp
-
-#mysql -N -B -e "use itaca; INSERT INTO alumnos ( nombre, apellido1, apellido2, gacadcod, nac_fecha, sexo, NIA, DNI_NORM, alta ) SELECT nombre,apellido1, apellido2, grupo, fechanacimiento as nac_fecha,sexo,nia as NIA,dniok as DNI_NORM, '1' as alta FROM itaca_temp where dniok not in (select DNI_NORM from alumnos);"
+mysql -N -B -e "use itaca; INSERT INTO alumnos (nombre, DNI_NORM, manual) select nombre_comp as nombre,DNI_NORM, '1' as manual from ldap_temp where DNI_NORM not in (select DNI_NORM from alumnos);"
 
 
 #Paso 3

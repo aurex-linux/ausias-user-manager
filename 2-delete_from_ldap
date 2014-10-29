@@ -24,7 +24,7 @@ ldap2xml() {
 
 	done
 
-	SED_RULE="${SED_RULE}/^[[:blank:]]*login=/{p;s%login%DNI_NORM%;s%=\".\(.*$\)%=\"\U\1%}"
+	SED_RULE="${SED_RULE}/^[[:blank:]]*login=/{p;s%login%DNI_NORM%;s%=\".\(.*$\)%=\"\U\1%;/=\".[A-Z]/s%=\"\(.\)\(.\)%=\"\2\1%}"
 	ALU_GID="$(getent group ALUMNOS  |cut -f 3 -d :)"
 	# get ldif
 	#TMP_FILE="$(tempfile)"

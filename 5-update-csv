@@ -7,13 +7,13 @@ die() {
 	exit 1
 }
 
-#LOG_FILE="carnet.log"
-LOG_FILE="../log.txt"
+CR8_DIR="/srv/carnets/alumnos"
+LOG_FILE="${CR8_DIR}/cr8-print.log"
 # formato log: fecha, DNI, NIA, GRUPO, FICHERO_CSV, NOMBRE_COMPLETO
 #listado_alumnos.csv=listado completo de todos los alumnos
 #lista_imprimible_GRUPO=listado de alumnos con foto y sin carnet
-ALL_STUDENTS="listado_alumnos.csv"
-GRP_STUDENTS="lista_imprimible_"
+ALL_STUDENTS="${CR8_DIR}/listado_alumnos.csv"
+GRP_STUDENTS="${CR8_DIR}/lista_imprimible_"
  
 # marca carnets impresos
 mysql -N -B -e "use itaca; update alumnos, carnet_temp set alumnos.carnet_impreso = '1' , alumnos.fecha_carnet = carnet_temp.FECHA where alumnos.DNI_NORM = carnet_temp.DNI;"
@@ -27,7 +27,7 @@ mysql -N -B -e "USE itaca; SELECT * FROM alumnos WHERE borrado = '0';" |sed -e '
 mysql -N -B -e "use itaca; SELECT codigo from grupos;" |while read gcode; do
 	gdesc="$(mysql -N -B -e "use itaca; SELECT descripcion from grupos where codigo = '$gcode';" |sed -e "s%^.\{3\}%_%;s% %.%g")"
 	gfile="${GRP_STUDENTS}${gcode}${gdesc}.csv"
-	mysql -N -B -e "USE itaca; SELECT * FROM alumnos WHERE borrado = '0' and carnet_impreso = '0' and foto != 'nobody.jpg' and gacadcod = '$gcode';" |sed -e 's%^%"%;s%\t%","%g;s%$%"%' > "$gfile"
+	mysql -N -B -e "USE itaca; SELECT * FROM alumnos WHERE borrado = '0' and carnet_impreso = '0' and foto != 'NOBODY.jpg' and gacadcod = '$gcode';" |sed -e 's%^%"%;s%\t%","%g;s%$%"%' > "$gfile"
 done
 
 exit 0

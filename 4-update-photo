@@ -7,8 +7,8 @@ die() {
 	exit 1
 }
 
-IMAGE_DIR="/var/lib/datastore/matricula"
-NOIMAGE="nobody.jpg"
+IMAGE_DIR="/srv/carnets/alumnos"
+NOIMAGE="NOBODY.jpg"
 
 #convertir a uppercase
 
@@ -33,7 +33,8 @@ done
 TMP_FILE="$(tempfile)"
 TMP_FILE2="$(tempfile)"
 
-mysql -N -B -e "use itaca; select DNI_NORM from alumnos where borrado='0' ;" > $TMP_FILE
+#mysql -N -B -e "use itaca; select DNI_NORM from alumnos where borrado='0' ;" > $TMP_FILE
+mysql -N -B -e "use itaca; select DNI_NORM from alumnos ;" > $TMP_FILE
 
 ls -1 $IMAGE_DIR/*.jpg 2>/dev/null | while read F; do
 	f="$(basename "$F" ".jpg")"

@@ -14,7 +14,11 @@ LOG_FILE="${CR8_DIR}/CR8-PRINT.log"
 #lista_imprimible_GRUPO=listado de alumnos con foto y sin carnet
 ALL_STUDENTS="${CR8_DIR}/LISTADO_ALUMNOS.csv"
 GRP_STUDENTS="${CR8_DIR}/LISTA_IMPRIMIBLE_"
- 
+
+# importa a BD
+IMPORT_SQL="use itaca; delete from carnet_temp; load data local infile '$LOG_FILE' into table carnet_temp FIELDS TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\r\n';"
+mysql --local-infile=1 -N -B -e "$IMPORT_SQL"
+# 
 # marca carnets impresos
 mysql -N -B -e "use itaca; update alumnos, carnet_temp set alumnos.carnet_impreso = '1' , alumnos.fecha_carnet = carnet_temp.FECHA where alumnos.DNI_NORM = carnet_temp.DNI;"
 

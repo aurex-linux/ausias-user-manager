@@ -70,6 +70,7 @@ mysql -N -B -e "use itaca; update alumnos, papercut.tbl_account set alumnos.bala
 
 #Paso 5 
 # eliminar a todos los alumnos con el campo alumnos.borrado="1" en el LDAP y modificar el campo borrado="2"
+# TODO: borrar la foto del servidor!!
 TMP_FILE="$(tempfile)"
 mysql -N -B -e "use itaca; select login from alumnos where borrado='1';" > "$TMP_FILE"
 

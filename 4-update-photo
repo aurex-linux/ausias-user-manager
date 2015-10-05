@@ -7,13 +7,20 @@ die() {
 	exit 1
 }
 
+DATASTORE_DIR="/var/lib/datastore/matricula"
 IMAGE_DIR="/srv/carnets/alumnos"
 NOIMAGE="NOBODY.jpg"
 
-#convertir a uppercase
-
+#convert to uppercase
 # thanks to http://unix.stackexchange.com/questions/84229/change-filename-from-lowercase-to-uppercase-recursively
+
+#datastore and cr8
+# ( cd $DATASTORE_DIR; rename 's/^([^.]*)\.(.*)$/\U$1\L.$2/' *.jpg; )
 ( cd $IMAGE_DIR; rename 's/^([^.]*)\.(.*)$/\U$1\L.$2/' *; )
+
+# rsync to sync photos from datastore
+echo "sincronizando fotos..."
+rsync -ax "$DATASTORE_DIR/" "$IMAGE_DIR/"
 
 chmod 664 $IMAGE_DIR/*
 chown datastore:datastore $IMAGE_DIR/*

@@ -29,7 +29,7 @@ mysql -N -B --column-names -e "USE itaca; SELECT * FROM alumnos WHERE borrado = 
 
 # por grupos
 mysql -N -B -e "use itaca; SELECT codigo from grupos;" |while read gcode; do
-	gdesc="$(mysql -N -B -e "use itaca; SELECT descripcion from grupos where codigo = '$gcode';" |sed -e "s%^.\{3\}%_%;s% %.%g" |tr "[:lower:]" "[:upper:]")"
+	gdesc="$(mysql -N -B -e "use itaca; SELECT descripcion from grupos where codigo = '$gcode';" |sed -e "s%^.\{3\}%_%;s% %.%g" |tr "[:lower:]." "[:upper:]_")"
 	gfile="${GRP_STUDENTS}${gcode}${gdesc}.csv"
 	mysql -N -B --column-names -e "USE itaca; SELECT * FROM alumnos WHERE borrado = '0' and carnet_impreso = '0' and foto != 'NOBODY.jpg' and gacadcod = '$gcode' ORDER by apellido1, apellido2, nombre;" |sed -e 's%^%"%;s%\t%","%g;s%$%"%' |iconv -f UTF-8 -t ISO-8859-15 > "$gfile"
 done

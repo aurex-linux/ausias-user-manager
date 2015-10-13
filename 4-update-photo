@@ -19,11 +19,18 @@ NOIMAGE="NOBODY.jpg"
 ( cd $IMAGE_DIR; rename 's/^([^.]*)\.(.*)$/\U$1\L.$2/' *; )
 
 # rsync to sync photos from datastore
-echo "sincronizando fotos..."
+echo "syncing photos..."
 rsync -ax "$DATASTORE_DIR/" "$IMAGE_DIR/"
 
 chmod 664 $IMAGE_DIR/*
 chown datastore:datastore $IMAGE_DIR/*
+
+# remove non jpg files:
+echo "Deleting damaged (or no jpg) files"
+file $IMAGE_DIR/*.jpg |grep -v "JPEG image data" | cut -f 1 -d : |while read f; do
+	echo "Deleting: $f"
+	rm "$f"
+done
 
 #  Listar alumnos no borrados y buscar foto
 

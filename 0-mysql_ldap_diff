@@ -1,0 +1,19 @@
+#!/bin/sh
+
+
+# source common files and do basic checkings
+
+. ./ausias-user-manager-common
+
+# common funcs
+usage(){
+	die "$0 <CSV_FILE>"
+}
+
+
+mysql -N -B -e "use itaca; select login from alumnos where borrado='0'" | while read l; do
+	if ! getent passwd "$l" > /dev/null ; then
+		echo "$l in MYSQL but NOT in LDAP"
+
+	fi
+done

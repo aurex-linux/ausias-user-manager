@@ -1,0 +1,23 @@
+#!/bin/sh
+
+
+# source common files and do basic checkings
+
+. ./ausias-user-manager-common
+
+# common funcs
+usage(){
+	die "$0 <CSV_FILE>"
+}
+
+
+getent group ALUMNOS |sed -e "s%^[^,]\+,%%" |tr "," "\n" | while read l; do
+	borrado="$(mysql -N -B -e "use itaca; select borrado from alumnos where login='$l'")"
+	if [ -z "$borrado" ] ; then
+		echo "$l in LDAP but NOT in MYSQL"
+	elif [ "$borrado" != "0" ] ; then
+		echo "$l in LDAP but MARKED AS DELETED in MYSQL ($borrado)"
+		#mysql -N -B -e "use itaca; update alumnos set borrado = '0' where login='$l'"
+
+	fi
+done

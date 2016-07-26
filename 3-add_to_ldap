@@ -95,7 +95,7 @@ cat "$TMP_FILE" |while read l; do
 		echo "Adding user: $gecos"
 #		smbldap-useradd -a -g ALUMNOS -d "/datos/usuarios/alumnos/$login" -D "S:" -G "Domain Users" -o "ou=usuarios,dc=centro,dc=com" -c "$gecos"  || true
 		rc=0
-		echo "$initpass" |smbldap-useradd -a -g ALUMNOS -d "/datos/usuarios/alumnos/${login}" -D "S:" -G "Domain Users" -c "$gecos" -S "$ape_clean" -N "$nom_clean" -Z employeeNumber=$employee -P  -p "${login}" || rc=$?
+		echo "$initpass" |smbldap-useradd -a -g ALUMNOS -d "/datos/usuarios/alumnos/${login}" -D "S:" -G "Domain Users" -c "$gecos" -S "$ape_clean" -N "$nom_clean" -Z employeeNumber=$employee,shadowMax=-1 -P  -p "${login}" || rc=$?
 		
 		if [ $rc -eq 0 ] || ldapsearch -LLL -x -b "dc=centro,dc=com" -D "$masterDN" -w "$masterPw" "(&(objectClass=posixAccount)(uid=${login}))" |grep -q "${login}" ; then
 			echo "Correcto"

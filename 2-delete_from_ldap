@@ -74,7 +74,7 @@ mysql -N -B -e "use itaca; update alumnos, papercut.tbl_account set alumnos.bala
 TMP_FILE="$(tempfile)"
 mysql -N -B -e "use itaca; select login from alumnos where borrado='1';" > "$TMP_FILE"
 
-[ -s "$TMP_FILE" ] || die "Error generating file from mysql"
+[ -e "$TMP_FILE" ] || die "Error generating file from mysql"
 
 cat "$TMP_FILE" |while read l; do
 	echo "Deleting user: $l"

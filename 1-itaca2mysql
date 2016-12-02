@@ -20,7 +20,9 @@ CSV_FILE0="$1"
 
 # convert to utf-8
 CSV_FILE="$(tempfile)"
-iconv -f ISO-8859-15 -t UTF-8 "$CSV_FILE0" |sed -e "1{s%[[:blank:]]%%g;s%\.%%g;s%[ñÑ]%n%g;s%.*%\L&%}" > "$CSV_FILE"
+#remove evil chars to prevent disasters in ldap
+EVIL_CHARS='&<>|'
+iconv -f ISO-8859-15 -t UTF-8 "$CSV_FILE0" |tr -d $EVIL_CHARS | sed -e "1{s%[[:blank:]]%%g;s%\.%%g;s%[ñÑ]%n%g;s%.*%\L&%}" > "$CSV_FILE"
 
 #convert to xml
 

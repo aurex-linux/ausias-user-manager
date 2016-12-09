@@ -57,4 +57,10 @@ mysql -N -B < $TMP_SQL
 
 rm -f $TMP_SQL $TMP_XML $CSV_FILE
 
+printf "Número de alumnos leidos desde itaca: "
+mysql -N -B -e "use itaca; select count(*) from itaca_temp;"
+
+printf "Número de alumnos actuales en la BD: "
+mysql -N -B -e "use itaca; select count(*) from alumnos;"
+
 exit 0

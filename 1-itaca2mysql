@@ -61,6 +61,6 @@ printf "Número de alumnos leidos desde itaca: "
 mysql -N -B -e "use itaca; select count(*) from itaca_temp;"
 
 printf "Número de alumnos actuales en la BD: "
-mysql -N -B -e "use itaca; select count(*) from alumnos;"
+mysql -N -B -e "use itaca; select count(*) from alumnos where borrado='0';"
 
 exit 0

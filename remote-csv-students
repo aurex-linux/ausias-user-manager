@@ -1,0 +1,17 @@
+#!/bin/sh
+
+
+# source common files and do basic checkings
+
+CPATH="$(dirname "$0")"
+
+. $CPATH/ausias-user-manager-common
+
+# common funcs
+usage(){
+	die "$0 <CSV_FILE>"
+}
+
+[ "$(id -u)" -eq 0 ] || die "You must be root"
+
+mysql -N -B -e "use itaca;SELECT login,DNI_NORM FROM alumnos WHERE borrado='0';" |sed -e 's%^%"%;s%\t%","%g;s%$%"%' |iconv -f UTF-8 -t ISO-8859-15

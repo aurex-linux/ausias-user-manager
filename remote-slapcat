@@ -1,0 +1,17 @@
+#!/bin/sh
+
+
+# source common files and do basic checkings
+
+CPATH="$(dirname "$0")"
+
+. $CPATH/ausias-user-manager-common
+
+# common funcs
+usage(){
+	die "$0 <CSV_FILE>"
+}
+
+[ "$(id -u)" -eq 0 ] || die "You must be root"
+
+/usr/sbin/slapcat

@@ -1,0 +1,27 @@
+#!/bin/sh
+# source common files and do basic checkings
+
+. ./ausias-user-manager-common
+
+
+# more checks
+
+user_confirmation "This script deletes from ldap server all users tagged as 'deleted' ('borrado = 2') in mySQL itaca.alumnos table"
+
+
+#Paso 5 
+# eliminar a todos los alumnos con el campo alumnos.borrado="2" en el LDAP 
+# TODO: borrar la foto del servidor!!
+TMP_FILE="$(tempfile)"
+mysql -N -B -e "use itaca; select login from alumnos where borrado='2';" > "$TMP_FILE"
+
+[ -e "$TMP_FILE" ] || die "Error generating file from mysql"
+
+cat "$TMP_FILE" |while read l; do
+	echo "Deleting user: $l"
+	smbldap-userdel $l || true
+done
+
+rm -f "$TMP_FILE"
+exit 0
+

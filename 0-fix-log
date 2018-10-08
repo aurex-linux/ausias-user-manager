@@ -1,0 +1,36 @@
+#!/bin/bash
+
+. ./ausias-user-manager-common-depinf
+
+die() {
+	echo "$1" >&2
+	exit 1
+}
+get_field(){
+	echo "$1" |cut -d , -f $2 
+#|sed -e 's%^"%%;s%"$%%'
+}
+
+CR8_DIR="/srv/carnets/alumnos"
+#LOG_FILE="${CR8_DIR}/CR8-PRINT.log"
+LOG_FILE="${CR8_DIR}/PRUEBA.log"
+# formato log: fecha, DNI, NIA, GRUPO, FICHERO_CSV, NOMBRE_COMPLETO
+#listado_alumnos.csv=listado completo de todos los alumnos
+#lista_imprimible_GRUPO=listado de alumnos con foto y sin carnet
+ALL_STUDENTS="${CR8_DIR}/LISTADO_ALUMNOS.csv"
+PRINTABLE_STUDENTS="${CR8_DIR}/ALUMNOS_SIN_CARNET.csv"-depinf
+GRP_STUDENTS="${CR8_DIR}/LISTA_IMPRIMIBLE_"
+
+FECHA="\"$(date +"%d/%m/%Y")\""
+for f in $(ls $GRP_STUDENTS*) ; do
+	FICHERO="\"$(basename "$f")\""
+	tail -n +2 "$f" |while read f; do
+		APENOM="$(get_field "$f" 17)"
+		NIA="$(get_field "$f" 24)"
+		GRUPO="$(get_field "$f" 25)"
+		DNI="$(get_field "$f" 44)"
+		echo "$FECHA,$DNI,$NIA,$GRUPO,$FICHERO,$APENOM" >> "$LOG_FILE"
+	done
+done
+
+exit 0

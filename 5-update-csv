@@ -1,6 +1,6 @@
 #!/bin/bash
 
-. ./ausias-user-manager-common
+. ./ausias-user-manager-common-depinf
 
 die() {
 	echo "$1" >&2

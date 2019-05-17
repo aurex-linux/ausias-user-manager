@@ -50,22 +50,32 @@ nom_clean="$(echo "$nombre" |sed -e "s%ñ%ny%g;s%Ñ%NY%g" |iconv --to-code ASCII
 gecos="$ape_clean  $nom_clean"
 echo "Adding user: $gecos and password: $initpass"
 
+group_ppal="PROFESORES"
+home_directory="/datos/usuarios/profesores"
 
 idgroup="$(get_from_db "familia")"
 case "$idgroup" in
-   "SAN") group="Dp_SANITAT"
+   "SAN") group=",Dp_SANITAT"
    ;;
-   "INF") group="Dp_INFORMATICA"
+   "INF") group=",Dp_INFORMATICA"
    ;;
-   "ADM") group="Dp_ADMINISTRACIO"
+   "ADM") group=",Dp_ADMINISTRACIO"
    ;;
-   "COM") group="Dp_COMERC_I_MARKETING"
+   "COM") group=",Dp_COMERC_I_MARKETING"
    ;;
-   "IDI") group="Dp_IDIOMES"
+   "IDI") group=",Dp_IDIOMES"
    ;;
-   "FOL") group="Dp_FOL"
+   "FOL") group=",Dp_FOL"
    ;;
-   "ORI") group="Dp_ORIENTACIO"
+   "ORI") group=",Dp_ORIENTACIO"
+   ;;
+   "SEC") group=""
+          group_ppal="SECRETARIA"
+	  home_directory="/datos/usuarios/pas"
+   ;;
+   "CONS") group=""
+           group_ppal="CONSERGERIA"
+	   home_directory="/datos/usuarios/pas"
    ;;
 esac
 
@@ -74,7 +84,7 @@ echo "$group"
 uid="$(get_from_db "uid")"
 
 rc=0
-echo "$initpass" |smbldap-useradd -a -g PROFESORES -d "/datos/usuarios/profesores/${login}" -D "S:" -G "Domain Users,$group" -c "$gecos" -S "$ape_clean" -N "$nom_clean" -M "${login}@ausiasmarch.net" -u "${uid}" -Z employeeNumber=$employee -P  -p "${login}" || rc=$?
+echo "$initpass" |smbldap-useradd -a -g $group_ppal -d "$home_directory/${login}" -D "S:" -G "Domain Users${group}" -c "$gecos" -S "$ape_clean" -N "$nom_clean" -M "${login}@ausiasmarch.net" -u "${uid}" -Z employeeNumber=$employee -P  -p "${login}" || rc=$?
 #echo smbldap-useradd -a -g PROFESORES -d "/datos/usuarios/profesores/${login}" -D "S:" -G "Domain Users" -c "$gecos" -S "$ape_clean" -N "$nom_clean" -Z employeeNumber=$employee -P  -p "${login}"
 if [ $rc -eq 0 ] ; then
    echo "Correcto"

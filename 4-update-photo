@@ -1,6 +1,6 @@
 #!/bin/bash
 
-. ./ausias-user-manager-common
+. ./ausias-user-manager-common-depinf
 
 die() {
 	echo "$1" >&2
@@ -20,10 +20,11 @@ NOIMAGE="NOBODY.jpg"
 
 # rsync to sync photos from datastore
 echo "syncing photos..."
-rsync -ax "$DATASTORE_DIR/" "$IMAGE_DIR/"
+#rsync -ax "$DATASTORE_DIR/" "$IMAGE_DIR/"
+rsync -rx "$DATASTORE_DIR/" "$IMAGE_DIR/"
 
 chmod 664 $IMAGE_DIR/*
-chown datastore:datastore $IMAGE_DIR/*
+#chown datastore:datastore $IMAGE_DIR/*
 
 # remove non jpg files:
 echo "Deleting damaged (or no jpg) files"

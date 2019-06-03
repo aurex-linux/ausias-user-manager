@@ -8,17 +8,6 @@ usage(){
 	die "Usage: $0 <LOGIN>"
 }
 
-strip_dni(){
-        # remove letters and select the last 8 chars
-        echo "$1" |sed "s%[a-zA-Z]%%g;s%^.*\(.\{8\}\)$%\1%"
-}
-
-
-get_from_db(){
-	DB_FIELD="$1"
-	mysql -N -B -e "use itaca; select $DB_FIELD from profesores where login='$login'"
-}
-
 # main
 # ----
 [ $(id -u) -eq 0 ] || die "You must be root to run this script"
@@ -34,48 +23,55 @@ export HOME=/root
 # test data
 login="$1"
 [ "$login" ] || usage
-! getent passwd "$login" >/dev/null || die "Profesor $login already exist in LDAP"
+! getent passwd "$login" >/dev/null || die "User $login already exist in LDAP"
 
-dni="$(get_from_db "dni")"
-[ "$dni" ] || die "Profesor $login not exists in mySQL"
-initpass="$(strip_dni "${dni}")"
-#echo "dni normalizado $initpass"
-employee="${initpass}000"
+# remove "uv_" prefix (if any ...)
+ape="${login#uv_*}"
+
+# employee number format: correlative number + '501' suffix. Left padded with '0s' until 11 digits
+# to get the last number in use, we do:
+#   1. ldap search to get employeeNumber atribute
+#   2. use sed to: remove headers, filter numbers ending with 501, remove padding '0s' and '501' suffix
+#   3. sort by numeric criteria in reverse order
+#   4. use head to get first line
+
+LAST_USED="$(ldapsearch -LLL -x -b "dc=centro,dc=com" -D "$masterDN" -w "$masterPw" '(objectClass=posixAccount)' employeeNumber |sed -ne "/^employeeNumber:.*501$/{s%^.*: %%;s%501$%%;s%^0\+%%;p}" |sort -rn |head -1)"
+NEW_NUMBER=$(( $LAST_USED + 1))
+
+# pad with '0s', add 501 suffix and get the last 11 digits
+employee="$(echo "0000000${NEW_NUMBER}501" |sed -e "s%^.*\(.\{11\}\)$%\1%")"
+
+# irrelevant in xwarrior migration
+initpass="$employee"
  
-ape1="$(get_from_db "apellido1")"
-ape2="$(get_from_db "apellido2")"
-nombre="$(get_from_db "nombre")"
+ape1="$ape"
+ape2="$ape"
+nombre="$ape"
+
 ape_clean="$(echo "$ape1 $ape2" |sed -e "s%ñ%ny%g;s%Ñ%NY%g" |iconv --to-code ASCII//TRANSLIT |sed -e "s%^[[:blank:]]*%%;s%[[:blank:]]*$%%")"
 nom_clean="$(echo "$nombre" |sed -e "s%ñ%ny%g;s%Ñ%NY%g" |iconv --to-code ASCII//TRANSLIT |sed -e "s%^[[:blank:]]*%%;s%[[:blank:]]*$%%")"
 gecos="$ape_clean  $nom_clean"
 echo "Adding user: $gecos and password: $initpass"
 
-
-idgroup="$(get_from_db "familia")"
-case "$idgroup" in
-   "SAN") group="Dp_SANITAT"
-   ;;
-   "INF") group="Dp_INFORMATICA"
-   ;;
-   "ADM") group="Dp_ADMINISTRACIO"
-   ;;
-   "COM") group="Dp_COMERC_I_MARKETING"
-   ;;
-   "IDI") group="Dp_IDIOMES"
-   ;;
-   "FOL") group="Dp_FOL"
-   ;;
-   "ORI") group="Dp_ORIENTACIO"
-   ;;
-esac
+group="USUARI_VIRTUAL"
 
 echo "$group"
 
-uid="$(get_from_db "uid")"
+# uidnumber format is a correlative number in the form: 51XXX
+# to get the last one we:
+#   1. ldap search to get uidnumber atribute
+#   2. use sed to: remove headers, filter numbers with format 51xxx, remove '51' prefix and padding '0s'"
+
+LAST_UID="$(ldapsearch -LLL -x -b "dc=centro,dc=com" -D "$masterDN" -w "$masterPw" '(objectClass=posixAccount)' uidNumber |sed -ne "/^uidNumber: 51[[:digit:]]\{3\}/{s%^.* 51%%;s%^0*%%;p}" |sort -rn  |head -1 )"
+NEW_UID=$(( $LAST_UID +1))
+
+# pad with '0s', and get the last 3 digits
+uid="$(echo "00${NEW_UID}" |sed -e "s%^.*\(.\{3\}\)$%\1%")"
+# add '51' preffix
+uid="51${uid}"
 
 rc=0
 echo "$initpass" |smbldap-useradd -a -g PROFESORES -d "/datos/usuarios/profesores/${login}" -D "S:" -G "Domain Users,$group" -c "$gecos" -S "$ape_clean" -N "$nom_clean" -M "${login}@ausiasmarch.net" -u "${uid}" -Z employeeNumber=$employee -P  -p "${login}" || rc=$?
-#echo smbldap-useradd -a -g PROFESORES -d "/datos/usuarios/profesores/${login}" -D "S:" -G "Domain Users" -c "$gecos" -S "$ape_clean" -N "$nom_clean" -Z employeeNumber=$employee -P  -p "${login}"
 if [ $rc -eq 0 ] ; then
    echo "Correcto"
 else

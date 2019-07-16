@@ -1,0 +1,39 @@
+#!/bin/sh
+
+
+# source common files and do basic checkings
+
+. ./ausias-user-manager-common
+
+# common funcs
+usage(){
+	die "$0 <CSV_FILE>"
+}
+
+# more checks
+
+# user_confirmation "Blah Blah"
+
+[ "$1" ] || usage
+CSV_FILE0="$1"
+[ -r "$CSV_FILE0" ] || die "Error reading $CSV_FILE"
+
+# convert to utf-8
+CSV_FILE="$(tempfile)"
+#remove evil chars to prevent disasters in ldap
+EVIL_CHARS='&<>|'
+iconv -f ISO-8859-15 -t UTF-8 "$CSV_FILE0" |tr -d $EVIL_CHARS | sed -e "1{s%[[:blank:]]%%g;s%\.%%g;s%[ñÑ]%n%g;s%.*%\L&%}" > "$CSV_FILE"
+
+#convert to xml
+
+TMP_XML="$(tempfile)"
+./csv2xml.py "$CSV_FILE" "$TMP_XML"
+
+# import to itaca DB
+mysql --local-infile=1 -N -B -e "use itaca; truncate table admitaca_temp; load xml local infile '$TMP_XML' into table admitaca_temp character set utf8;"
+
+mysql -N -B -e "use itaca; truncate table admitaca; insert into admitaca(nombre_comp, dni, NIA, cursocod) select CONCAT(t.apellido2, ' ', t.apellido1, ', ' , t.nombre), documento, nia, curso from admitaca_temp as t where 1;"
+
+rm -f $TMP_XML $CSV_FILE
+
+exit 0

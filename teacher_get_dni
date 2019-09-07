@@ -1,0 +1,35 @@
+#!/bin/sh
+die() {
+	echo "$1" >&2
+	exit 1
+}
+
+usage(){
+	die "Usage: $0 <LOGIN>"
+}
+
+get_from_db(){
+	DB_FIELD="$1"
+	mysql -N -B -e "use itaca; select $DB_FIELD from profesores where login='$login'"
+}
+
+# main
+# ----
+[ $(id -u) -eq 0 ] || die "You must be root to run this script"
+
+# check configuration files
+for f in /etc/smbldap-tools/smbldap_bind.conf  /etc/smbldap-tools/smbldap.conf; do
+	[ -r "$f" ] || die "Missing configuration file $f"
+	. $f
+done
+[ -r /root/.my.cnf ] || die "Missing mysql configurarion in /root/.my.cnf"
+export HOME=/root
+
+# test data
+login="$1"
+[ "$login" ] || usage
+
+dni="$(get_from_db "dni")"
+[ "$dni" ] || die "Profesor $login not exists in mySQL"
+echo "$dni"
+return 0

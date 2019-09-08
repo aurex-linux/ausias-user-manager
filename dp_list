@@ -1,0 +1,37 @@
+#!/bin/sh
+die() {
+	echo "$1" >&2
+	exit 1
+}
+
+usage(){
+	die "Usage: $0 <GROUP>"
+}
+
+get_from_db(){
+	mysql -N -B -e "use itaca; select dni from profesores where login='$1'"
+}
+
+# main
+# ----
+[ $(id -u) -eq 0 ] || die "You must be root to run this script"
+
+# check configuration files
+for f in /etc/smbldap-tools/smbldap_bind.conf  /etc/smbldap-tools/smbldap.conf; do
+	[ -r "$f" ] || die "Missing configuration file $f"
+	. $f
+done
+[ -r /root/.my.cnf ] || die "Missing mysql configurarion in /root/.my.cnf"
+export HOME=/root
+
+BLOCK="scanrepro"
+# test data
+gname="$1"
+[ "$gname" ] || usage
+getent group "$gname" |cut -d : -f 4 |tr "," "\n" |while read u; do
+	if ! echo " $u " | grep -q " $BLOCK "; then
+		dni="$(get_from_db "$u")"
+		echo "$u $dni"
+	fi
+done
+return 0

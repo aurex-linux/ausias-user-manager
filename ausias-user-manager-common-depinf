@@ -1,0 +1,31 @@
+# common code for ausias-user-manager tools
+die() {
+        echo "$1" >&2
+        exit 1
+}
+
+user_confirmation(){
+	echo "WARNING!!!: $1"
+	echo "¿Do you want to proceed? (Write 'YES' in uppercase to continue)"
+	read a
+	[ "$a" = "YES" ] || die "Aborted due to user input"
+}
+
+get_from_db(){
+        DB_FIELD="$1"
+	DB_LOGIN="$2"
+	[ "$DB_LOGIN" ] || DB_LOGIN="$login"
+        mysql -N -B -e "use itaca; select $DB_FIELD from alumnos where login='$DB_LOGIN'"
+}
+
+# basic tests
+[ "$(id -un)" = "depinf" ] || die "You must be depinf to run this script"
+
+# check configuration files
+for f in /etc/smbldap-tools/smbldap_bind.conf  /etc/smbldap-tools/smbldap.conf; do
+        [ -r "$f" ] || die "Missing configuration file $f"
+        . $f
+done
+[ -r $HOME/.my.cnf ] || die "Missing mysql configurarion in $HOME/.my.cnf"
+
+

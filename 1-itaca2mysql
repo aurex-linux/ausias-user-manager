@@ -24,9 +24,23 @@ CSV_FILE="$(tempfile)"
 EVIL_CHARS='&<>|'
 iconv -f ISO-8859-15 -t UTF-8 "$CSV_FILE0" |tr -d $EVIL_CHARS | sed -e "1{s%[[:blank:]]%%g;s%\.%%g;s%[ñÑ]%n%g;s%.*%\L&%}" > "$CSV_FILE"
 
+#prepare CSV ...
+# count fields until "Documento"
+FN="$(head -1 "$CSV_FILE" |tr "," "\n" |grep -n "Documento" |cut -f 1 -d :)"
+REGEXP="\(^"
+# generate REGEXP to find 'passport' situations 
+n=1
+while [ $n -lt $FN ] ; do
+	REGEXP="$REGEXP\"[^\"]*\","
+	n=$(($n+1))
+done
+REGEXP="$REGEXP\"\)\([[:digit:]]\)\([[:alpha:]]\)\([^\"]*\)\(.*$\)"
+# alter order digit/letter at first to format passpaort as NIE
+sed -i -e "/$REGEXP/{s%$REGEXP%\1\3\2\4\5%}" "$CSV_FILE"
 #convert to xml
 
 TMP_XML="$(tempfile)"
+
 ./csv2xml.py "$CSV_FILE" "$TMP_XML"
 
 # import to itaca DB

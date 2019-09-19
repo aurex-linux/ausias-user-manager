@@ -26,7 +26,7 @@ iconv -f ISO-8859-15 -t UTF-8 "$CSV_FILE0" |tr -d $EVIL_CHARS | sed -e "1{s%[[:b
 
 #prepare CSV ...
 # count fields until "Documento"
-FN="$(head -1 "$CSV_FILE" |tr "," "\n" |grep -n "Documento" |cut -f 1 -d :)"
+FN="$(head -1 "$CSV_FILE" |tr "," "\n" |grep -n "documento" |cut -f 1 -d :)"
 REGEXP="\(^"
 # generate REGEXP to find 'passport' situations 
 n=1

@@ -18,6 +18,14 @@ usage(){
 CSV_FILE0="$1"
 [ -r "$CSV_FILE0" ] || die "Error reading $CSV_FILE"
 
+#duplicate detection (get dni field, then sort and count duplicates, then filter lines with 2,3,4 .... ocurrences
+n=0
+for d in $(cat "$CSV_FILE0"|cut -f 7 -d , | sort | uniq -c | grep "[[:blank:]]*[23456789] " |cut -f 2 -d '"'); do
+	n=$(($n+1))
+	grep "\"$d\"" "$CSV_FILE0"
+done
+[ $n -eq 0 ] || die "There are DNI duplicates"
+
 # convert to utf-8
 CSV_FILE="$(tempfile)"
 #remove evil chars to prevent disasters in ldap
@@ -37,6 +45,10 @@ done
 REGEXP="$REGEXP\"\)\([[:digit:]]\)\([[:alpha:]]\)\([^\"]*\)\(.*$\)"
 # alter order digit/letter at first to format passpaort as NIE
 sed -i -e "/$REGEXP/{s%$REGEXP%\1\3\2\4\5%}" "$CSV_FILE"
+
+
+
+
 #convert to xml
 
 TMP_XML="$(tempfile)"
